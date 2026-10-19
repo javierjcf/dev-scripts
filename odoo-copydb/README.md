@@ -1,4 +1,4 @@
-# odoo-prod2local
+# odoo-copydb
 
 Copia una base de datos Odoo (Doodba + docker compose) desde un servidor remoto
 a tu entorno local por SSH, con o sin filestore. Bash puro: solo `ssh`, `scp`,
@@ -6,8 +6,8 @@ a tu entorno local por SSH, con o sin filestore. Bash puro: solo `ssh`, `scp`,
 No usa herramientas de terceros para el dump (`pg_dump` / `pg_restore` / `psql`).
 
 ```
-odoo-prod2local/
-├── odoo-prod2local.sh      # el script (genérico, sin datos de proyecto)
+odoo-copydb/
+├── odoo-copydb.sh          # el script (genérico, sin datos de proyecto)
 ├── install.sh              # enlaza el script en ~/.local/bin
 ├── conf/
 │   └── _example.conf       # plantilla comentada (subible a git)
@@ -18,12 +18,12 @@ odoo-prod2local/
 
 ```bash
 git clone git@github.com:javierjcf/odoo-scripts.git
-cd odoo-scripts/odoo-prod2local
-./install.sh        # enlaza el comando odoo-prod2local en ~/.local/bin (o en $BIN_DIR)
+cd odoo-scripts/odoo-copydb
+./install.sh        # enlaza el comando odoo-copydb en ~/.local/bin (o en $BIN_DIR)
 ```
 
 Es un enlace simbólico al script del repo: un `git pull` actualiza el comando. Comprueba que
-`~/.local/bin` esté en tu `PATH`. Después `odoo-prod2local --help` funciona desde cualquier carpeta.
+`~/.local/bin` esté en tu `PATH`. Después `odoo-copydb --help` funciona desde cualquier carpeta.
 
 Dependencias: `ssh`, `scp`, `tar`, `rsync` (filestore), `docker compose` y, si usas password,
 `sshpass`.
@@ -31,10 +31,10 @@ Dependencias: `ssh`, `scp`, `tar`, `rsync` (filestore), `docker compose` y, si u
 ## Configuración
 
 Todo lo específico de cada proyecto (servidor, rutas, passwords) va en un fichero
-`<proyecto>.conf`, **fuera del repo**, en `~/.config/odoo-prod2local/conf/`:
+`<proyecto>.conf`, **fuera del repo**, en `~/.config/odoo-copydb/conf/`:
 
 ```
-~/.config/odoo-prod2local/
+~/.config/odoo-copydb/
 └── conf/
     ├── _example.conf               # copia de la plantilla, para duplicarla
     ├── did_v18.conf
@@ -49,23 +49,23 @@ Todo lo específico de cada proyecto (servidor, rutas, passwords) va en un fiche
   actualiza sola; bórrala para que se vuelva a copiar.
 - Los `.conf` llevan passwords, así que no se suben a git. En un portátil nuevo hay que
   recrearlos (o copiarlos desde una copia segura).
-- `PROD2LOCAL_CONF_DIR=/otra/carpeta` cambia la ubicación. También puedes pasar la ruta de un
+- `ODOO_COPYDB_CONF_DIR=/otra/carpeta` cambia la ubicación. También puedes pasar la ruta de un
   `.conf` en lugar del nombre del proyecto.
 
 ### Añadir un proyecto (1 minuto)
 
 ```bash
-cd ~/.config/odoo-prod2local/conf
+cd ~/.config/odoo-copydb/conf
 cp _example.conf miproyecto.conf     # (o duplica otro proyecto parecido)
 chmod 600 miproyecto.conf            # el script se niega a leerlo si no
 $EDITOR miproyecto.conf              # rellena la sección 1 (OBLIGATORIO)
-odoo-prod2local miproyecto --dry-run        # ver la configuración resuelta
+odoo-copydb miproyecto --dry-run        # ver la configuración resuelta
 ```
 
 `conf/_example.conf` es la referencia: arriba lo **obligatorio** (descomentado) y debajo
 **todo lo opcional**, comentado y con su valor por defecto. Nada se deduce del nombre del
 fichero: el nombre del proyecto, las rutas y las carpetas de backup se escriben a mano.
-Ejemplos reales: `~/.config/odoo-prod2local/conf/did_v18.conf` y `delete_v18.conf`.
+Ejemplos reales: `~/.config/odoo-copydb/conf/did_v18.conf` y `delete_v18.conf`.
 
 ## Opciones
 
@@ -83,7 +83,7 @@ Ejemplos reales: `~/.config/odoo-prod2local/conf/did_v18.conf` y `delete_v18.con
 | `-l`, `--list` | Lista los proyectos disponibles. |
 | `-h`, `--help` | Ayuda. |
 
-La ubicación de los `.conf` y la variable `PROD2LOCAL_CONF_DIR` están en «Configuración».
+La ubicación de los `.conf` y la variable `ODOO_COPYDB_CONF_DIR` están en «Configuración».
 
 ## Qué hace, paso a paso
 
@@ -112,10 +112,10 @@ Si el script falla **después** de descargar (restore, update-all, un script de 
 no hace falta volver a pedir el dump a producción:
 
 ```bash
-./odoo-prod2local.sh miproyecto --from-local                 # el último backup local
-./odoo-prod2local.sh miproyecto --backup 2026-10-06_11-56_miproyecto   # uno concreto
-./odoo-prod2local.sh miproyecto --list-backups               # ver cuáles hay
-./odoo-prod2local.sh miproyecto --from-local --filestore     # y de paso el filestore
+./odoo-copydb.sh miproyecto --from-local                 # el último backup local
+./odoo-copydb.sh miproyecto --backup 2026-10-06_11-56_miproyecto   # uno concreto
+./odoo-copydb.sh miproyecto --list-backups               # ver cuáles hay
+./odoo-copydb.sh miproyecto --from-local --filestore     # y de paso el filestore
 ```
 En este modo no se conecta al servidor (salvo que pidas `--filestore`) y no rota backups.
 También sirve para **volver a un estado anterior** de la BBDD cuando quieras.
@@ -124,8 +124,8 @@ También sirve para **volver a un estado anterior** de la BBDD cuando quieras.
 Si ya tienes la BBDD y solo te falta (o quieres refrescar) el filestore, en cualquier momento:
 
 ```bash
-./odoo-prod2local.sh delete_v18 --only-filestore
-./odoo-prod2local.sh delete_v18 --only-filestore --dry-run    # ver origen y destino antes
+./odoo-copydb.sh delete_v18 --only-filestore
+./odoo-copydb.sh delete_v18 --only-filestore --dry-run    # ver origen y destino antes
 ```
 Solo hace la etapa de filestore: no genera dump, no para ni arranca contenedores, no toca
 la BBDD ni rota backups. Usa `REMOTE_FILESTORE` / `LOCAL_FILESTORE` del `.conf` (obligatorias
@@ -255,7 +255,7 @@ de uno conocido.
 
 ## Seguridad y advertencias
 
-- Los `.conf` contienen passwords: viven en `~/.config/odoo-prod2local/conf/` (fuera del repo,
+- Los `.conf` contienen passwords: viven en `~/.config/odoo-copydb/conf/` (fuera del repo,
   la carpeta se crea con permisos 700) y el script exige `chmod 600`. No los subas ni los
   incluyas en zips que compartas. `conf/*.conf` sigue en `.gitignore` por si acaso.
 - Un `.conf` es código bash (se carga con `source`): lee los que te pasen otras personas.
@@ -268,5 +268,5 @@ de uno conocido.
 Una función por etapa (`space_check`, `remote_dump`, `fetch_archive`, `extract_archive`,
 `local_restore`, `sync_filestore`, `post_restore`, `rotate_backups`) y un `main` corto que
 las llama en orden. Para añadir un paso, escribe su función y llámala desde `main`.
-Para probar cambios: `bash -n odoo-prod2local.sh`, `shellcheck odoo-prod2local.sh` y
+Para probar cambios: `bash -n odoo-copydb.sh`, `shellcheck odoo-copydb.sh` y
 `--dry-run` con un `.conf` de prueba.

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # =============================================================================
-# odoo-prod2local.sh — copia una BBDD Odoo (Doodba + docker compose) de un
+# odoo-copydb.sh — copia una BBDD Odoo (Doodba + docker compose) de un
 # servidor remoto a tu entorno local por SSH. Opcionalmente trae el filestore.
 #
 # Todo lo específico de cada proyecto (host, claves, rutas, hooks) vive en
-# <proyecto>.conf en ~/.config/odoo-prod2local/conf/. Este script no contiene datos
+# <proyecto>.conf en ~/.config/odoo-copydb/conf/. Este script no contiene datos
 # de ningún proyecto.
 #
 # Flujo normal:
@@ -18,9 +18,9 @@ set -Eeuo pipefail
 # readlink -f resuelve el symlink de ~/.local/bin hasta la carpeta real del script.
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 EXAMPLE_CONF="$SCRIPT_DIR/conf/_example.conf"
-# Configuraciones por proyecto: siempre en ~/.config/odoo-prod2local/conf, fuera del repo.
-# (~/.config/odoo-prod2local queda libre para otros datos del script en el futuro.)
-CONF_DIR="${PROD2LOCAL_CONF_DIR:-$HOME/.config/odoo-prod2local/conf}"
+# Configuraciones por proyecto: siempre en ~/.config/odoo-copydb/conf, fuera del repo.
+# (~/.config/odoo-copydb queda libre para otros datos del script en el futuro.)
+CONF_DIR="${ODOO_COPYDB_CONF_DIR:-$HOME/.config/odoo-copydb/conf}"
 
 log()  { printf '[%s] [+] %s\n' "$(date +%H:%M:%S)" "$*"; }
 warn() { printf '[%s] [!] %s\n' "$(date +%H:%M:%S)" "$*" >&2; }
@@ -43,7 +43,7 @@ Uso: ${0##*/} <proyecto|ruta.conf> [opciones]
   -l, --list           listar proyectos disponibles
   -h, --help           esta ayuda
 
-Configuraciones en: $CONF_DIR   (cámbialo con PROD2LOCAL_CONF_DIR)
+Configuraciones en: $CONF_DIR   (cámbialo con ODOO_COPYDB_CONF_DIR)
 Nuevo proyecto:     cp $CONF_DIR/_example.conf $CONF_DIR/miproyecto.conf
                     chmod 600 $CONF_DIR/miproyecto.conf
 EOF
@@ -247,7 +247,7 @@ print_summary() {
     if $ONLY_FILESTORE; then
         cat <<EOF
 ================================================================
-  odoo-prod2local  |  $PROJECT_NAME  |  SOLO FILESTORE
+  odoo-copydb  |  $PROJECT_NAME  |  SOLO FILESTORE
 ================================================================
   Origen : $SSH_USER@$SSH_HOST:$SSH_PORT  $REMOTE_FILESTORE
   Destino: $LOCAL_FILESTORE   (rsync --delete; sudo remoto=$REMOTE_RSYNC_SUDO, local=$LOCAL_RSYNC_SUDO)
@@ -263,7 +263,7 @@ EOF
     else origen="dump remoto $DUMP_FORMAT (jobs=$DUMP_JOBS) -> $LOCAL_ARCHIVE"; fi
     cat <<EOF
 ================================================================
-  odoo-prod2local  |  $PROJECT_NAME
+  odoo-copydb  |  $PROJECT_NAME
 ================================================================
   Origen   : $origen
   Remoto   : $SSH_USER@$SSH_HOST:$SSH_PORT  ($REMOTE_DOCKER_PATH, ${REMOTE_COMPOSE_FILE:-compose por defecto}, db=$REMOTE_DB)

@@ -6,6 +6,7 @@ con su propio README.
 | Herramienta | Descripción | Lenguaje |
 |---|---|---|
 | [odoo-freeze-repos](odoo-freeze-repos/) | Congela/descongela el `repos.yaml` de Doodba a los commits en disco | Python |
+| [odoo-copydb](odoo-copydb/) | Copia una BBDD Odoo (Doodba + docker compose) de un servidor remoto a local por SSH, con o sin filestore | Bash |
 
 ## Instalación
 
@@ -15,7 +16,7 @@ herramientas que indiques:
 
 ```bash
 ./install.sh                  # pide confirmación e instala todas
-./install.sh odoo-freeze-repos    # solo las indicadas
+./install.sh odoo-freeze-repos odoo-copydb   # solo las indicadas
 ```
 
 ## Añadir una herramienta
