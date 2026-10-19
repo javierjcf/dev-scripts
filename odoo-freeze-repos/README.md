@@ -1,4 +1,4 @@
-# freeze-doodba
+# odoo-freeze-repos
 
 Congela y descongela el `repos.yaml` de un proyecto [Doodba](https://github.com/Tecnativa/doodba)
 a los commits que ya hay en disco, para que el siguiente `invoke git-aggregate` descargue
@@ -6,12 +6,18 @@ exactamente el mismo código.
 
 Solo usa la librería estándar de Python 3 (sin PyYAML ni venv).
 
+## Instalación
+
+```bash
+./install.sh     # enlaza odoo-freeze-repos en ~/.local/bin (o en $BIN_DIR)
+```
+
 ## Uso
 
 ```bash
-freeze-doodba freeze   RUTA [REPO,REPO ...]
-freeze-doodba unfreeze RUTA [REPO,REPO ...]
-freeze-doodba list     RUTA [REPO,REPO ...]
+odoo-freeze-repos freeze   RUTA [REPO,REPO ...]
+odoo-freeze-repos unfreeze RUTA [REPO,REPO ...]
+odoo-freeze-repos list     RUTA [REPO,REPO ...]
 ```
 
 `RUTA` es la raíz del proyecto Doodba (donde están `common.yaml` y `odoo/`). Sin `REPO` actúa
@@ -42,9 +48,9 @@ cp odoo/custom/src/bck-repos.yaml    odoo/custom/src/repos.yaml   # volver al or
 
 ## Flujo típico
 
-1. `freeze-doodba freeze /ruta/doodba`: se guarda el original y se fijan los SHAs.
-2. Más adelante, `freeze-doodba unfreeze /ruta/doodba` y `invoke git-aggregate` para traer lo último.
-3. `freeze-doodba freeze /ruta/doodba` otra vez: el original no se toca.
+1. `odoo-freeze-repos freeze /ruta/doodba`: se guarda el original y se fijan los SHAs.
+2. Más adelante, `odoo-freeze-repos unfreeze /ruta/doodba` y `invoke git-aggregate` para traer lo último.
+3. `odoo-freeze-repos freeze /ruta/doodba` otra vez: el original no se toca.
 
 ## Limitaciones
 

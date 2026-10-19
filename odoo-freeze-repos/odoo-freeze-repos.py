@@ -2,9 +2,9 @@
 """Congela/descongela el repos.yaml de un proyecto Doodba a los commits ya existentes en disco.
 
 Uso:
-    freeze-doodba freeze   RUTA [REPO,REPO ...]
-    freeze-doodba unfreeze RUTA [REPO,REPO ...]
-    freeze-doodba list     RUTA [REPO,REPO ...]
+    odoo-freeze-repos freeze   RUTA [REPO,REPO ...]
+    odoo-freeze-repos unfreeze RUTA [REPO,REPO ...]
+    odoo-freeze-repos list     RUTA [REPO,REPO ...]
 
 RUTA es la raiz del proyecto Doodba (donde estan common.yaml y odoo/). Sin REPO actua
 sobre todos los repos con .git bajo odoo/custom/src/ (excluyendo siempre private/).
@@ -287,14 +287,16 @@ def validate_targets(requested, all_repos):
 
 
 ADDED_MARKER = (
-    "# --- A partir de aqui: repos anadidos por freeze_repos.py, antes implicitos "
+    "# --- A partir de aqui: repos anadidos por odoo-freeze-repos, antes implicitos "
     "via addons.yaml ---\n"
 )
+# Marca del nombre anterior del script: se sigue reconociendo en repos.yaml ya congelados.
+LEGACY_ADDED_MARKER = ADDED_MARKER.replace("odoo-freeze-repos", "freeze_repos.py")
 
 
 def ensure_added_marker(lines):
     """Inserta el comentario separador una unica vez, si todavia no esta."""
-    if any(line == ADDED_MARKER for line in lines):
+    if find_added_marker(lines) is not None:
         return
     if lines and not lines[-1].endswith("\n"):
         lines[-1] += "\n"
@@ -315,20 +317,22 @@ def append_new_block(lines, name, url, sha):
     lines.append(f"    - origin {sha}  #frozen:$ODOO_VERSION\n")
 
 
-STAMP_PREFIX = "# Congelado con freeze_repos.py el "
+STAMP_PREFIX = "# Congelado con odoo-freeze-repos el "
+LEGACY_STAMP_PREFIX = "# Congelado con freeze_repos.py el "  # nombre anterior del script
+STAMP_PREFIXES = (STAMP_PREFIX, LEGACY_STAMP_PREFIX)
 
 
 def set_stamp(lines):
     """Pone (o actualiza) en la primera linea la fecha y hora del freeze."""
     stamp = f"{STAMP_PREFIX}{datetime.datetime.now():%Y-%m-%d %H:%M}\n"
-    if lines and lines[0].startswith(STAMP_PREFIX):
+    if lines and lines[0].startswith(STAMP_PREFIXES):
         lines[0] = stamp
     else:
         lines.insert(0, stamp)
 
 
 def remove_stamp(lines):
-    if lines and lines[0].startswith(STAMP_PREFIX):
+    if lines and lines[0].startswith(STAMP_PREFIXES):
         del lines[0]
 
 
@@ -427,7 +431,7 @@ def cmd_freeze(args):
 
 def find_added_marker(lines):
     for i, line in enumerate(lines):
-        if line == ADDED_MARKER:
+        if line in (ADDED_MARKER, LEGACY_ADDED_MARKER):
             return i
     return None
 

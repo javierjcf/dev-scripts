@@ -1,42 +1,34 @@
 #!/usr/bin/env bash
-# Enlaza en BIN_DIR (por defecto ~/.local/bin) el ejecutable de cada herramienta.
+# Ejecuta el install.sh de las herramientas indicadas; cada una decide como instalarse
+# (normalmente un enlace en BIN_DIR, por defecto ~/.local/bin).
 #
-# Convencion: la herramienta <nombre>/ expone el ejecutable <nombre>, <nombre>.py o
-# <nombre>.sh; el enlace se crea sin extension.
-#
-# Uso: ./install.sh [HERRAMIENTA ...]   (sin argumentos, todas)
+# Uso: ./install.sh [HERRAMIENTA ...]
+#      Sin argumentos pide confirmacion y las instala todas.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BIN_DIR="${BIN_DIR:-$HOME/.local/bin}"
+export BIN_DIR="${BIN_DIR:-$HOME/.local/bin}"
 
 if [[ $# -gt 0 ]]; then
     tools=("$@")
 else
     tools=()
-    for dir in "$ROOT"/*/; do
-        tools+=("$(basename "$dir")")
+    for script in "$ROOT"/*/install.sh; do
+        [[ -f "$script" ]] && tools+=("$(basename "$(dirname "$script")")")
     done
+    echo "Se instalaran: ${tools[*]}"
+    read -r -p "¿Continuar? [s/N] " answer || answer=""
+    [[ "$answer" =~ ^[sSyY]$ ]] || { echo "Cancelado."; exit 1; }
 fi
 
-mkdir -p "$BIN_DIR"
-
 for tool in "${tools[@]}"; do
-    dir="$ROOT/$tool"
-    if [[ ! -d "$dir" ]]; then
-        echo "[WARN] no existe la herramienta: $tool" >&2
+    script="$ROOT/$tool/install.sh"
+    if [[ ! -f "$script" ]]; then
+        echo "[WARN] $tool: no tiene install.sh" >&2
         continue
     fi
-    found=""
-    for candidate in "$dir/$tool" "$dir/$tool.py" "$dir/$tool.sh"; do
-        if [[ -f "$candidate" && -x "$candidate" ]]; then
-            ln -sfn "$candidate" "$BIN_DIR/$tool"
-            echo "$BIN_DIR/$tool -> $candidate"
-            found=1
-            break
-        fi
-    done
-    [[ -n "$found" ]] || echo "[SKIP] $tool: sin ejecutable $tool[.py|.sh]" >&2
+    echo "== $tool"
+    bash "$script"
 done
 
 case ":$PATH:" in

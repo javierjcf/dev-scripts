@@ -5,19 +5,20 @@ con su propio README.
 
 | Herramienta | Descripción | Lenguaje |
 |---|---|---|
-| [freeze-doodba](freeze-doodba/) | Congela/descongela el `repos.yaml` de Doodba a los commits en disco | Python |
+| [odoo-freeze-repos](odoo-freeze-repos/) | Congela/descongela el `repos.yaml` de Doodba a los commits en disco | Python |
 
 ## Instalación
 
-`install.sh` enlaza (`ln -s`) los ejecutables en `~/.local/bin` (o en `$BIN_DIR`):
+Cada herramienta lleva su `install.sh`, que decide cómo instalarse (normalmente un enlace en
+`~/.local/bin`, o en `$BIN_DIR` si lo defines). El `install.sh` raíz ejecuta los de las
+herramientas que indiques:
 
 ```bash
-./install.sh                  # todas las herramientas
-./install.sh freeze-doodba    # solo algunas
+./install.sh                  # pide confirmación e instala todas
+./install.sh odoo-freeze-repos    # solo las indicadas
 ```
 
 ## Añadir una herramienta
 
-1. Crear la carpeta `nombre-herramienta/` con su `README.md`.
-2. Si debe ir al PATH, que su ejecutable se llame como la carpeta (`nombre-herramienta`, `.py` o `.sh`) y tenga permiso de ejecución.
-3. Añadir una fila a la tabla de arriba.
+1. Crear la carpeta `nombre-herramienta/` con su `README.md` y su `install.sh`.
+2. Añadir una fila a la tabla de arriba.
