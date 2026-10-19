@@ -4,7 +4,8 @@
 # servidor remoto a tu entorno local por SSH. Opcionalmente trae el filestore.
 #
 # Todo lo específico de cada proyecto (host, claves, rutas, hooks) vive en
-# conf/<proyecto>.conf. Este script no contiene datos de ningún proyecto.
+# <proyecto>.conf en ~/.config/odoo-prod2local/conf/. Este script no contiene datos
+# de ningún proyecto.
 #
 # Flujo normal:
 #   1 comprobar espacio  2 dump remoto  3 descargar  4 extraer  5 restaurar
@@ -14,8 +15,12 @@
 # =============================================================================
 set -Eeuo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONF_DIR="${PROD2LOCAL_CONF_DIR:-$SCRIPT_DIR/conf}"
+# readlink -f resuelve el symlink de ~/.local/bin hasta la carpeta real del script.
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+EXAMPLE_CONF="$SCRIPT_DIR/conf/_example.conf"
+# Configuraciones por proyecto: siempre en ~/.config/odoo-prod2local/conf, fuera del repo.
+# (~/.config/odoo-prod2local queda libre para otros datos del script en el futuro.)
+CONF_DIR="${PROD2LOCAL_CONF_DIR:-$HOME/.config/odoo-prod2local/conf}"
 
 log()  { printf '[%s] [+] %s\n' "$(date +%H:%M:%S)" "$*"; }
 warn() { printf '[%s] [!] %s\n' "$(date +%H:%M:%S)" "$*" >&2; }
@@ -39,12 +44,28 @@ Uso: ${0##*/} <proyecto|ruta.conf> [opciones]
   -h, --help           esta ayuda
 
 Configuraciones en: $CONF_DIR   (cámbialo con PROD2LOCAL_CONF_DIR)
-Nuevo proyecto:     cp conf/_example.conf conf/miproyecto.conf && chmod 600 conf/miproyecto.conf
+Nuevo proyecto:     cp $CONF_DIR/_example.conf $CONF_DIR/miproyecto.conf
+                    chmod 600 $CONF_DIR/miproyecto.conf
 EOF
+}
+
+# Crea la carpeta de configuraciones si no existe (solo el propietario puede entrar) y deja
+# en ella una copia de la plantilla para duplicarla: cp _example.conf <proyecto>.conf
+ensure_conf_dir() {
+    if [[ ! -d $CONF_DIR ]]; then
+        mkdir -p -m 700 "$CONF_DIR"
+        warn "No existía la carpeta de configuraciones; creada en: $CONF_DIR"
+        warn "Pon ahí un <proyecto>.conf por proyecto (chmod 600)."
+    fi
+    if [[ ! -e $CONF_DIR/_example.conf && -f $EXAMPLE_CONF ]]; then
+        cp "$EXAMPLE_CONF" "$CONF_DIR/_example.conf"
+        warn "Plantilla copiada a $CONF_DIR/_example.conf: duplícala con cp para crear un proyecto."
+    fi
 }
 
 list_projects() {
     local f
+    ensure_conf_dir
     for f in "$CONF_DIR"/*.conf; do
         [[ -e $f && $(basename "$f") != _* ]] && basename "$f" .conf
     done
@@ -134,9 +155,12 @@ apply_defaults() {
 }
 
 load_config() {
+    ensure_conf_dir
     if   [[ -f $PROJECT_ARG ]];                then CONF_FILE=$(realpath "$PROJECT_ARG")
     elif [[ -f $CONF_DIR/$PROJECT_ARG.conf ]]; then CONF_FILE="$CONF_DIR/$PROJECT_ARG.conf"
-    else die "No existe la configuración '$PROJECT_ARG' en $CONF_DIR (usa --list)"
+    else die "No existe la configuración '$PROJECT_ARG'. Debe estar en: $CONF_DIR/$PROJECT_ARG.conf
+    Créala con:  cp $CONF_DIR/_example.conf $CONF_DIR/$PROJECT_ARG.conf && chmod 600 $CONF_DIR/$PROJECT_ARG.conf
+    (proyectos existentes: --list)"
     fi
 
     local perm; perm=$(stat -c '%a' "$CONF_FILE")
@@ -149,7 +173,7 @@ load_config() {
     local v req=(PROJECT_NAME SSH_HOST SSH_USER REMOTE_DOCKER_PATH LOCAL_DOCKER_PATH REMOTE_BACKUP_DIR LOCAL_BACKUP_DIR)
     if [[ $COPY_FILESTORE == true ]]; then req+=(REMOTE_FILESTORE LOCAL_FILESTORE); fi
     for v in "${req[@]}"; do
-        [[ -n ${!v:-} ]] || die "Falta $v en $CONF_FILE (ver conf/_example.conf)"
+        [[ -n ${!v:-} ]] || die "Falta $v en $CONF_FILE (ver $EXAMPLE_CONF)"
     done
     [[ $PROJECT_NAME =~ ^[A-Za-z0-9_.-]+$ ]]  || die "PROJECT_NAME solo admite letras, números, _ . -"
     BACKUP_TAG="$PROJECT_NAME"

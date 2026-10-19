@@ -8,33 +8,64 @@ No usa herramientas de terceros para el dump (`pg_dump` / `pg_restore` / `psql`)
 ```
 odoo-prod2local/
 ├── odoo-prod2local.sh      # el script (genérico, sin datos de proyecto)
+├── install.sh              # enlaza el script en ~/.local/bin
 ├── conf/
-│   ├── _example.conf       # plantilla comentada (subible a git)
-│   └── <proyecto>.conf     # uno por proyecto (ignorados por git, chmod 600)
+│   └── _example.conf       # plantilla comentada (subible a git)
 └── README.md
 ```
 
-## Inicio rápido
+## Instalación
 
 ```bash
-./odoo-prod2local.sh did_v18                  # solo BBDD
-./odoo-prod2local.sh did_v18 --filestore      # BBDD + filestore
-./odoo-prod2local.sh --list                   # proyectos configurados
+git clone git@github.com:javierjcf/odoo-scripts.git
+cd odoo-scripts/odoo-prod2local
+./install.sh        # enlaza el comando odoo-prod2local en ~/.local/bin (o en $BIN_DIR)
 ```
+
+Es un enlace simbólico al script del repo: un `git pull` actualiza el comando. Comprueba que
+`~/.local/bin` esté en tu `PATH`. Después `odoo-prod2local --help` funciona desde cualquier carpeta.
+
+Dependencias: `ssh`, `scp`, `tar`, `rsync` (filestore), `docker compose` y, si usas password,
+`sshpass`.
+
+## Configuración
+
+Todo lo específico de cada proyecto (servidor, rutas, passwords) va en un fichero
+`<proyecto>.conf`, **fuera del repo**, en `~/.config/odoo-prod2local/conf/`:
+
+```
+~/.config/odoo-prod2local/
+└── conf/
+    ├── _example.conf               # copia de la plantilla, para duplicarla
+    ├── did_v18.conf
+    └── delete_v18.conf             # uno por proyecto, chmod 600
+```
+
+- La carpeta se **crea sola** (permisos `700`) la primera vez que ejecutas el comando, con un
+  aviso que indica dónde está y que ahí van los `.conf`. Si falta el `.conf` de un proyecto,
+  el error te dice la ruta exacta y el comando para crearlo.
+- Deja dentro una copia de la plantilla, `_example.conf`: para un proyecto nuevo se duplica
+  desde ahí (`cp _example.conf miproyecto.conf`). Si cambias la plantilla del repo, no se
+  actualiza sola; bórrala para que se vuelva a copiar.
+- Los `.conf` llevan passwords, así que no se suben a git. En un portátil nuevo hay que
+  recrearlos (o copiarlos desde una copia segura).
+- `PROD2LOCAL_CONF_DIR=/otra/carpeta` cambia la ubicación. También puedes pasar la ruta de un
+  `.conf` en lugar del nombre del proyecto.
 
 ### Añadir un proyecto (1 minuto)
 
 ```bash
-cp conf/_example.conf conf/miproyecto.conf
-chmod 600 conf/miproyecto.conf      # el script se niega a leerlo si no
-$EDITOR conf/miproyecto.conf        # rellena la sección 1 (OBLIGATORIO)
-./odoo-prod2local.sh miproyecto --dry-run   # ver la configuración resuelta
+cd ~/.config/odoo-prod2local/conf
+cp _example.conf miproyecto.conf     # (o duplica otro proyecto parecido)
+chmod 600 miproyecto.conf            # el script se niega a leerlo si no
+$EDITOR miproyecto.conf              # rellena la sección 1 (OBLIGATORIO)
+odoo-prod2local miproyecto --dry-run        # ver la configuración resuelta
 ```
 
 `conf/_example.conf` es la referencia: arriba lo **obligatorio** (descomentado) y debajo
 **todo lo opcional**, comentado y con su valor por defecto. Nada se deduce del nombre del
 fichero: el nombre del proyecto, las rutas y las carpetas de backup se escriben a mano.
-Ejemplos reales: `conf/did_v18.conf` y `conf/delete_v18.conf`.
+Ejemplos reales: `~/.config/odoo-prod2local/conf/did_v18.conf` y `delete_v18.conf`.
 
 ## Opciones
 
@@ -52,8 +83,7 @@ Ejemplos reales: `conf/did_v18.conf` y `conf/delete_v18.conf`.
 | `-l`, `--list` | Lista los proyectos disponibles. |
 | `-h`, `--help` | Ayuda. |
 
-Variable de entorno: `PROD2LOCAL_CONF_DIR=/otra/carpeta` cambia dónde se buscan
-los `.conf`. También puedes pasar directamente la ruta de un `.conf` en lugar del nombre.
+La ubicación de los `.conf` y la variable `PROD2LOCAL_CONF_DIR` están en «Configuración».
 
 ## Qué hace, paso a paso
 
@@ -225,8 +255,9 @@ de uno conocido.
 
 ## Seguridad y advertencias
 
-- Los `conf/*.conf` contienen passwords: están en `.gitignore` y el script exige `chmod 600`.
-  No los subas ni los incluyas en zips que compartas.
+- Los `.conf` contienen passwords: viven en `~/.config/odoo-prod2local/conf/` (fuera del repo,
+  la carpeta se crea con permisos 700) y el script exige `chmod 600`. No los subas ni los
+  incluyas en zips que compartas. `conf/*.conf` sigue en `.gitignore` por si acaso.
 - Un `.conf` es código bash (se carga con `source`): lee los que te pasen otras personas.
 - Es **destructivo en local** por diseño: borra y recrea `LOCAL_DB`, y con `--filestore`
   el rsync usa `--delete` sobre `LOCAL_FILESTORE`. Úsalo solo en entornos de desarrollo.
